@@ -38,6 +38,8 @@ namespace Carbon.Plugins
     [Description("Standalone Arena GunGame – zero dependencies")]
     public class ArenaGunGame : CarbonPlugin
     {
+        private enum GameMode { GunGame, KingOfTheHill }
+
         // ── Configuration ──────────────────────────────────────────────
         private Configuration _cfg;
 
@@ -45,6 +47,21 @@ namespace Carbon.Plugins
         {
             [JsonProperty("Cycle interval (seconds)")]
             public float CycleInterval = 240f;
+
+            [JsonProperty("Game mode (GunGame / KingOfTheHill)")]
+            public string Mode = "GunGame";
+
+            [JsonProperty("KoTH: zone radius (meters)")]
+            public float KothRadius = 50f;
+
+            [JsonProperty("KoTH: hill rotate interval (seconds)")]
+            public float KothRotateInterval = 120f;
+
+            [JsonProperty("KoTH: radiation damage per tick")]
+            public float KothRadDamage = 12f;
+
+            [JsonProperty("KoTH: radiation tick interval (seconds)")]
+            public float KothRadInterval = 3f;
 
             [JsonProperty("Loadouts")]
             public List<Loadout> Loadouts = new List<Loadout>
@@ -541,6 +558,7 @@ namespace Carbon.Plugins
             public string Name;
             public int    Kills;
             public int    Deaths;
+            public int    KothScore;
             public float  KDA => (float)Kills / (Deaths > 0 ? Deaths : 1);
         }
 
@@ -549,16 +567,35 @@ namespace Carbon.Plugins
         protected override void SaveConfig()         => Config.WriteObject(_cfg, true);
 
         // ── Global state ───────────────────────────────────────────────
-        private int   _weaponIndex;
-        private readonly Dictionary<ulong, RoundStats> _roundStats = new Dictionary<ulong, RoundStats>();
-        private readonly List<Vector3> _spawnPoints = new List<Vector3>();
+        private int      _weaponIndex;
+        private GameMode _activeMode;
+        private readonly Dictionary<ulong, RoundStats> _roundStats  = new Dictionary<ulong, RoundStats>();
+        private readonly List<Vector3>                 _spawnPoints  = new List<Vector3>();
+
+        // KoTH state
+        private Vector3                _hillPosition;
+        private MapMarkerGenericRadius _hillMarker;
+        private Timer                  _kothRotateTimer;
+        private Timer                  _kothTickTimer;
 
         // ── Lifecycle ──────────────────────────────────────────────────
         private void OnServerInitialized()
         {
             _weaponIndex = 0;
+            System.Enum.TryParse(_cfg.Mode, ignoreCase: true, result: out _activeMode);
             GenerateSpawnPoints(60);
             timer.Repeat(_cfg.CycleInterval, 0, CycleWeapons);
+
+            if (_activeMode == GameMode.KingOfTheHill)
+                StartKingOfTheHill();
+        }
+
+        private void Unload()
+        {
+            _kothRotateTimer?.Destroy();
+            _kothTickTimer?.Destroy();
+            if (_hillMarker != null && !_hillMarker.IsDestroyed)
+                _hillMarker.Kill();
         }
 
         // ── Spawn ──────────────────────────────────────────────────────
@@ -590,6 +627,114 @@ namespace Carbon.Plugins
             return _spawnPoints[Random.Range(0, _spawnPoints.Count)];
         }
 
+        private Vector3 GetRandomMapPosition()
+        {
+            if (TerrainMeta.HeightMap == null) return Vector3.zero;
+            float halfSize = TerrainMeta.Size.x * 0.38f;
+            for (int i = 0; i < 50; i++)
+            {
+                float x = Random.Range(-halfSize, halfSize);
+                float z = Random.Range(-halfSize, halfSize);
+                float y = TerrainMeta.HeightMap.GetHeight(x, z);
+                if (y > 1f) return new Vector3(x, y + 1f, z);
+            }
+            return Vector3.zero;
+        }
+
+        // ── King of the Hill ───────────────────────────────────────────
+        private void StartKingOfTheHill()
+        {
+            _hillPosition = GetRandomMapPosition();
+            UpdateHillMarker();
+            AnnounceHillPosition();
+
+            _kothRotateTimer?.Destroy();
+            _kothRotateTimer = timer.Repeat(_cfg.KothRotateInterval, 0, RotateHill);
+
+            _kothTickTimer?.Destroy();
+            _kothTickTimer = timer.Repeat(_cfg.KothRadInterval, 0, KothTick);
+        }
+
+        private void StopKingOfTheHill()
+        {
+            _kothRotateTimer?.Destroy();
+            _kothTickTimer?.Destroy();
+            if (_hillMarker != null && !_hillMarker.IsDestroyed)
+                _hillMarker.Kill();
+        }
+
+        private void RotateHill()
+        {
+            _hillPosition = GetRandomMapPosition();
+            UpdateHillMarker();
+            AnnounceHillPosition();
+        }
+
+        private void KothTick()
+        {
+            foreach (var player in BasePlayer.activePlayerList)
+            {
+                if (player == null || player.IsDead() || player.IsSleeping()) continue;
+
+                if (Vector3.Distance(player.transform.position, _hillPosition) <= _cfg.KothRadius)
+                {
+                    var stats = GetOrCreateStats(player.userID, player.displayName);
+                    stats.KothScore++;
+
+                    // Notify every 10 accumulated points
+                    if (stats.KothScore % 10 == 0)
+                        player.ChatMessage($"<color=#ffcc00>[KoTH]</color> Zóna pont: <color=#aaffaa>{stats.KothScore}</color>");
+                }
+                else
+                {
+                    player.Hurt(_cfg.KothRadDamage, Rust.DamageType.Radiation, null, false);
+                }
+            }
+        }
+
+        private void UpdateHillMarker()
+        {
+            if (_hillMarker != null && !_hillMarker.IsDestroyed)
+                _hillMarker.Kill();
+
+            _hillMarker = GameManager.server.CreateEntity(
+                "assets/prefabs/tools/map/genericradiusmarker.prefab",
+                _hillPosition) as MapMarkerGenericRadius;
+
+            if (_hillMarker == null) return;
+
+            _hillMarker.alpha  = 0.6f;
+            _hillMarker.color1 = new Color(1f, 0.6f, 0f);
+            _hillMarker.color2 = new Color(1f, 0.1f, 0.1f);
+            _hillMarker.radius = _cfg.KothRadius;
+            _hillMarker.Spawn();
+            _hillMarker.SendUpdate();
+        }
+
+        private void AnnounceHillPosition()
+        {
+            var grid = GetGridReference(_hillPosition);
+            Server.Broadcast(
+                $"<color=#ffcc00>[KoTH]</color> Új zóna: <color=#ff6600>{grid}</color>" +
+                $" — kint vagy? Sugársérülés vár!");
+        }
+
+        private string GetGridReference(Vector3 pos)
+        {
+            float mapSize  = TerrainMeta.Size.x;
+            float cellSize = 150f;
+            int   cells    = Mathf.RoundToInt(mapSize / cellSize);
+
+            int col = Mathf.Clamp((int)((pos.x + mapSize / 2f) / mapSize * cells), 0, cells - 1);
+            int row = Mathf.Clamp((int)((1f - (pos.z + mapSize / 2f) / mapSize) * cells), 0, cells - 1);
+
+            string colStr = "";
+            int c = col;
+            do { colStr = (char)('A' + c % 26) + colStr; c = c / 26 - 1; } while (c >= 0);
+
+            return $"{colStr}{row + 1}";
+        }
+
         // ── Weapon cycle ───────────────────────────────────────────────
         private void CycleWeapons()
         {
@@ -619,10 +764,12 @@ namespace Carbon.Plugins
             Server.Broadcast("<color=#ffcc00>[GunGame] ══ Kör vége ══</color>");
             for (int i = 0; i < top3.Count; i++)
             {
-                var s = top3[i];
+                var s       = top3[i];
+                var kothStr = _activeMode == GameMode.KingOfTheHill
+                    ? $" | KoTH: <color=#ffaa00>{s.KothScore}</color>" : "";
                 Server.Broadcast(
                     $"<color=#ffcc00>[GunGame]</color> #{i + 1} <color=#ffff00>{s.Name}</color>" +
-                    $" — <color=#aaffaa>{s.Kills}K</color> / {s.Deaths}D | KDA: <color=#aaffaa>{s.KDA:F2}</color>");
+                    $" — <color=#aaffaa>{s.Kills}K</color> / {s.Deaths}D | KDA: <color=#aaffaa>{s.KDA:F2}</color>{kothStr}");
             }
 
             foreach (var player in BasePlayer.activePlayerList)
@@ -631,9 +778,10 @@ namespace Carbon.Plugins
 
                 var rank    = top3.FindIndex(s => s.SteamId == player.userID) + 1;
                 var rankStr = rank > 0 ? $" (#{rank})" : "";
+                var pkoth   = _activeMode == GameMode.KingOfTheHill ? $" | KoTH: {ps.KothScore}" : "";
                 player.ChatMessage(
                     $"<color=#aaffff>[GunGame] Saját statod{rankStr}:</color>" +
-                    $" {ps.Kills}K / {ps.Deaths}D | KDA: {ps.KDA:F2}");
+                    $" {ps.Kills}K / {ps.Deaths}D | KDA: {ps.KDA:F2}{pkoth}");
             }
         }
 
@@ -740,7 +888,17 @@ namespace Carbon.Plugins
 
             var attacker = info?.InitiatorPlayer;
             if (attacker != null && attacker.userID != player.userID)
-                GetOrCreateStats(attacker.userID, attacker.displayName).Kills++;
+            {
+                var stats = GetOrCreateStats(attacker.userID, attacker.displayName);
+                stats.Kills++;
+
+                if (_activeMode == GameMode.KingOfTheHill &&
+                    Vector3.Distance(attacker.transform.position, _hillPosition) <= _cfg.KothRadius)
+                {
+                    stats.KothScore += 2;
+                    attacker.ChatMessage("<color=#ffcc00>[KoTH]</color> +2 pont – zónában öltél!");
+                }
+            }
         }
 
         private void OnEntityTakeDamage(BaseCombatEntity entity, HitInfo info)
@@ -770,5 +928,57 @@ namespace Carbon.Plugins
         }
 
         private object CanLootPlayer(BasePlayer target, BasePlayer looter) => false;
+
+        // ── Chat commands (admin only) ─────────────────────────────────
+        [ChatCommand("gg")]
+        private void CmdGg(BasePlayer player, string command, string[] args)
+        {
+            if (!player.IsAdmin) { player.ChatMessage("Csak adminok használhatják."); return; }
+
+            if (args.Length == 0)
+            {
+                player.ChatMessage($"[GunGame] Mód: <color=#ffcc00>{_activeMode}</color> | Parancsok: /gg mode <gungame|koth> | /gg hill | /gg spawn");
+                return;
+            }
+
+            switch (args[0].ToLower())
+            {
+                case "mode":
+                    if (args.Length < 2) { player.ChatMessage("Használat: /gg mode <gungame|koth>"); return; }
+
+                    if (args[1].ToLower() == "koth" || args[1].ToLower() == "kingofthehill")
+                    {
+                        _activeMode  = GameMode.KingOfTheHill;
+                        _cfg.Mode    = "KingOfTheHill";
+                        SaveConfig();
+                        StartKingOfTheHill();
+                        Server.Broadcast("<color=#ffcc00>[GunGame]</color> Módváltás: <color=#ff6600>King of the Hill</color>!");
+                    }
+                    else
+                    {
+                        _activeMode = GameMode.GunGame;
+                        _cfg.Mode   = "GunGame";
+                        SaveConfig();
+                        StopKingOfTheHill();
+                        Server.Broadcast("<color=#ffcc00>[GunGame]</color> Módváltás: <color=#aaffaa>Gun Game</color>!");
+                    }
+                    break;
+
+                case "hill":
+                    if (_activeMode != GameMode.KingOfTheHill)
+                        { player.ChatMessage("Csak KoTH módban érhető el."); return; }
+                    player.ChatMessage($"[KoTH] Zóna: <color=#ff6600>{GetGridReference(_hillPosition)}</color> | Sugár: {_cfg.KothRadius}m");
+                    break;
+
+                case "spawn":
+                    GenerateSpawnPoints(60);
+                    player.ChatMessage($"[GunGame] {_spawnPoints.Count} spawn pont újragenerálva.");
+                    break;
+
+                default:
+                    player.ChatMessage("Parancsok: /gg mode <gungame|koth> | /gg hill | /gg spawn");
+                    break;
+            }
+        }
     }
 }
