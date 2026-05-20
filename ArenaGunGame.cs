@@ -26,10 +26,13 @@
  *                   Semi-Auto Pistol, Compound Bow, Double Barrel
  */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using Random = UnityEngine.Random;
 using Carbon.Base;
 using Newtonsoft.Json;
+using Oxide.Core.Libraries;
 using UnityEngine;
 
 namespace Carbon.Plugins
@@ -52,16 +55,31 @@ namespace Carbon.Plugins
             public string Mode = "GunGame";
 
             [JsonProperty("KoTH: zone radius (meters)")]
-            public float KothRadius = 50f;
+            public float KothRadius = 150f;
 
             [JsonProperty("KoTH: hill rotate interval (seconds)")]
-            public float KothRotateInterval = 120f;
+            public float KothRotateInterval = 180f;
 
-            [JsonProperty("KoTH: radiation damage per tick")]
-            public float KothRadDamage = 12f;
+            [JsonProperty("KoTH: zone points per second (in zone)")]
+            public int KothZonePointsPerSec = 10;
 
-            [JsonProperty("KoTH: radiation tick interval (seconds)")]
-            public float KothRadInterval = 3f;
+            [JsonProperty("KoTH: points per kill")]
+            public int KothKillPoints = 100;
+
+            [JsonProperty("KoTH: tick interval (seconds)")]
+            public float KothRadInterval = 1f;
+
+            [JsonProperty("Vehicle: spawn cooldown (seconds)")]
+            public float VehicleCooldown = 300f;
+
+            [JsonProperty("Vehicle: car prefab")]
+            public string VehicleCarPrefab = "assets/content/vehicles/modularcar/car_body.entity.prefab";
+
+            [JsonProperty("Vehicle: bike prefab")]
+            public string VehicleBikePrefab = "assets/content/vehicles/bicycle/bicycle.entity.prefab";
+
+            [JsonProperty("Vehicle: motorbike prefab")]
+            public string VehicleMotoPrefab = "assets/content/vehicles/bikes/motorbike.entity.prefab";
 
             [JsonProperty("Loadouts")]
             public List<Loadout> Loadouts = new List<Loadout>
@@ -84,6 +102,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",        1,  "belt"),
                         new ItemStack("binoculars",          1,  "belt"),
                         new ItemStack("nightvision.goggles", 1,  "main"),
+                        new ItemStack("grenade.f1",          2,  "belt"),
                         new ItemStack("syringe.medical",     4,  "main"),
                         new ItemStack("bandage",             10, "main"),
                         new ItemStack("can.tuna",            3,  "main"),
@@ -110,6 +129,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",        1,  "belt"),
                         new ItemStack("binoculars",          1,  "belt"),
                         new ItemStack("nightvision.goggles", 1,  "main"),
+                        new ItemStack("grenade.f1",          2,  "belt"),
                         new ItemStack("syringe.medical",     3,  "main"),
                         new ItemStack("bandage",             10, "main"),
                         new ItemStack("can.tuna",            3,  "main"),
@@ -136,6 +156,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",        1,  "belt"),
                         new ItemStack("binoculars",          1,  "belt"),
                         new ItemStack("nightvision.goggles", 1,  "main"),
+                        new ItemStack("grenade.f1",          2,  "belt"),
                         new ItemStack("syringe.medical",     3,  "main"),
                         new ItemStack("bandage",             10, "main"),
                         new ItemStack("can.tuna",            3,  "main"),
@@ -162,6 +183,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 3,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -188,6 +210,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 3,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -214,6 +237,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -239,6 +263,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -264,6 +289,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -289,6 +315,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("flashlight.held", 1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -315,6 +342,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -340,6 +368,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -366,6 +395,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",        1,  "belt"),
                         new ItemStack("binoculars",          1,  "belt"),
                         new ItemStack("nightvision.goggles", 1,  "main"),
+                        new ItemStack("grenade.f1",          2,  "belt"),
                         new ItemStack("syringe.medical",     2,  "main"),
                         new ItemStack("bandage",             10, "main"),
                         new ItemStack("can.tuna",            3,  "main"),
@@ -392,6 +422,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -417,6 +448,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -442,6 +474,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("flashlight.held", 1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -467,6 +500,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("flashlight.held", 1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -492,6 +526,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 2,  "main"),
                         new ItemStack("bandage",         10, "main"),
                         new ItemStack("can.tuna",        3,  "main"),
@@ -517,6 +552,7 @@ namespace Carbon.Plugins
                         new ItemStack("knife.combat",    1,  "belt"),
                         new ItemStack("binoculars",      1,  "belt"),
                         new ItemStack("flashlight.held", 1,  "belt"),
+                        new ItemStack("grenade.beancan", 2,  "belt"),
                         new ItemStack("syringe.medical", 3,  "main"),
                         new ItemStack("bandage",         15, "main"),
                         new ItemStack("can.tuna",        4,  "main"),
@@ -575,8 +611,12 @@ namespace Carbon.Plugins
         // KoTH state
         private Vector3                _hillPosition;
         private MapMarkerGenericRadius _hillMarker;
-        private Timer                  _kothRotateTimer;
-        private Timer                  _kothTickTimer;
+        private Action                 _kothRotateTimer;
+        private Action                 _kothTickTimer;
+        private readonly HashSet<ulong> _inZonePlayers = new HashSet<ulong>();
+
+        // Vehicle cooldowns: steamId → Time.realtimeSinceStartup of last spawn
+        private readonly Dictionary<ulong, float> _vehicleCooldowns = new Dictionary<ulong, float>();
 
         // ── Lifecycle ──────────────────────────────────────────────────
         private void OnServerInitialized()
@@ -592,8 +632,8 @@ namespace Carbon.Plugins
 
         private void Unload()
         {
-            _kothRotateTimer?.Destroy();
-            _kothTickTimer?.Destroy();
+            _kothRotateTimer?.Invoke();
+            _kothTickTimer?.Invoke();
             if (_hillMarker != null && !_hillMarker.IsDestroyed)
                 _hillMarker.Kill();
         }
@@ -602,23 +642,23 @@ namespace Carbon.Plugins
         private void GenerateSpawnPoints(int count)
         {
             _spawnPoints.Clear();
-            if (TerrainMeta.HeightMap == null) return;
 
-            float halfSize = TerrainMeta.Size.x * 0.38f;
+            float half     = World.Size * 0.35f;
             int   attempts = 0;
 
-            while (_spawnPoints.Count < count && attempts < count * 10)
+            while (_spawnPoints.Count < count && attempts < count * 15)
             {
                 attempts++;
-                float x = Random.Range(-halfSize, halfSize);
-                float z = Random.Range(-halfSize, halfSize);
-                float y = TerrainMeta.HeightMap.GetHeight(x, z);
+                float x = Random.Range(-half, half);
+                float z = Random.Range(-half, half);
+                // GetHeight(Vector3) uses world-space position
+                float y = TerrainMeta.HeightMap.GetHeight(new Vector3(x, 0f, z));
 
-                if (y > 1f)
+                if (y > 0.5f)
                     _spawnPoints.Add(new Vector3(x, y + 0.5f, z));
             }
 
-            Puts($"[GunGame] {_spawnPoints.Count} spawn pont generálva.");
+            Puts($"[GunGame] Generated {_spawnPoints.Count} spawn points (World.Size={World.Size}).");
         }
 
         private Vector3 GetRandomSpawnPoint()
@@ -629,16 +669,16 @@ namespace Carbon.Plugins
 
         private Vector3 GetRandomMapPosition()
         {
-            if (TerrainMeta.HeightMap == null) return Vector3.zero;
-            float halfSize = TerrainMeta.Size.x * 0.38f;
-            for (int i = 0; i < 50; i++)
+            float half = World.Size * 0.35f;
+            for (int i = 0; i < 100; i++)
             {
-                float x = Random.Range(-halfSize, halfSize);
-                float z = Random.Range(-halfSize, halfSize);
-                float y = TerrainMeta.HeightMap.GetHeight(x, z);
-                if (y > 1f) return new Vector3(x, y + 1f, z);
+                float x = Random.Range(-half, half);
+                float z = Random.Range(-half, half);
+                float y = TerrainMeta.HeightMap.GetHeight(new Vector3(x, 0f, z));
+                if (y > 0.5f) return new Vector3(x, y + 1f, z);
             }
-            return Vector3.zero;
+            // Fallback: random position near centre above sea level
+            return new Vector3(Random.Range(-50f, 50f), 10f, Random.Range(-50f, 50f));
         }
 
         // ── King of the Hill ───────────────────────────────────────────
@@ -648,23 +688,26 @@ namespace Carbon.Plugins
             UpdateHillMarker();
             AnnounceHillPosition();
 
-            _kothRotateTimer?.Destroy();
-            _kothRotateTimer = timer.Repeat(_cfg.KothRotateInterval, 0, RotateHill);
+            _kothRotateTimer?.Invoke();
+            var rotT = timer.Repeat(_cfg.KothRotateInterval, 0, RotateHill);
+            _kothRotateTimer = () => rotT.Destroy();
 
-            _kothTickTimer?.Destroy();
-            _kothTickTimer = timer.Repeat(_cfg.KothRadInterval, 0, KothTick);
+            _kothTickTimer?.Invoke();
+            var tickT = timer.Repeat(_cfg.KothRadInterval, 0, KothTick);
+            _kothTickTimer = () => tickT.Destroy();
         }
 
         private void StopKingOfTheHill()
         {
-            _kothRotateTimer?.Destroy();
-            _kothTickTimer?.Destroy();
+            _kothRotateTimer?.Invoke();
+            _kothTickTimer?.Invoke();
             if (_hillMarker != null && !_hillMarker.IsDestroyed)
                 _hillMarker.Kill();
         }
 
         private void RotateHill()
         {
+            _inZonePlayers.Clear();
             _hillPosition = GetRandomMapPosition();
             UpdateHillMarker();
             AnnounceHillPosition();
@@ -672,24 +715,35 @@ namespace Carbon.Plugins
 
         private void KothTick()
         {
+            var nowInZone = new HashSet<ulong>();
+
             foreach (var player in BasePlayer.activePlayerList)
             {
                 if (player == null || player.IsDead() || player.IsSleeping()) continue;
 
-                if (Vector3.Distance(player.transform.position, _hillPosition) <= _cfg.KothRadius)
-                {
-                    var stats = GetOrCreateStats(player.userID, player.displayName);
-                    stats.KothScore++;
+                bool inside = Vector3.Distance(player.transform.position, _hillPosition) <= _cfg.KothRadius;
 
-                    // Notify every 10 accumulated points
-                    if (stats.KothScore % 10 == 0)
-                        player.ChatMessage($"<color=#ffcc00>[KoTH]</color> Zóna pont: <color=#aaffaa>{stats.KothScore}</color>");
-                }
-                else
+                if (inside)
                 {
-                    player.Hurt(_cfg.KothRadDamage, Rust.DamageType.Radiation, null, false);
+                    nowInZone.Add(player.userID);
+
+                    if (!_inZonePlayers.Contains(player.userID))
+                        player.ChatMessage("<color=#ffcc00>[KoTH]</color> You entered the zone! +10 pts/sec");
+
+                    var stats = GetOrCreateStats(player.userID, player.displayName);
+                    stats.KothScore += _cfg.KothZonePointsPerSec;
+
+                    if (stats.KothScore % 100 == 0)
+                        player.ChatMessage($"<color=#ffcc00>[KoTH]</color> Zone points: <color=#aaffaa>{stats.KothScore}</color>");
+                }
+                else if (_inZonePlayers.Contains(player.userID))
+                {
+                    player.ChatMessage("<color=#ff6666>[KoTH]</color> You left the zone!");
                 }
             }
+
+            _inZonePlayers.Clear();
+            foreach (var id in nowInZone) _inZonePlayers.Add(id);
         }
 
         private void UpdateHillMarker()
@@ -703,10 +757,26 @@ namespace Carbon.Plugins
 
             if (_hillMarker == null) return;
 
-            _hillMarker.alpha  = 0.6f;
-            _hillMarker.color1 = new Color(1f, 0.6f, 0f);
-            _hillMarker.color2 = new Color(1f, 0.1f, 0.1f);
-            _hillMarker.radius = _cfg.KothRadius;
+            _hillMarker.alpha  = 0.5f;
+            _hillMarker.color1 = new Color(1f, 0.8f, 0f);
+            _hillMarker.color2 = new Color(1f, 0.4f, 0f);
+
+            // ── MAP CIRCLE SIZE ───────────────────────────────────────────
+            // The radius value below controls how big the orange circle looks
+            // on the in-game map. It is NOT in meters — it is a raw display unit.
+            //
+            // Formula currently:  KothRadius * 150 / World.Size
+            //   KothRadius = 150m (game-logic zone size, set in config)
+            //   World.Size = server map size in meters (e.g. 1500)
+            //   Result     = 15  (the actual value passed to the marker)
+            //
+            // HOW TO TUNE:
+            //   If the circle is too LARGE  → lower the multiplier (150f → 75f, 50f, etc.)
+            //   If the circle is too SMALL  → raise the multiplier (150f → 300f, 500f, etc.)
+            //   You can also replace the whole expression with a plain number, e.g.:
+            //       _hillMarker.radius = 8f;
+            // ─────────────────────────────────────────────────────────────
+            _hillMarker.radius = _cfg.KothRadius * 26f / World.Size;
             _hillMarker.Spawn();
             _hillMarker.SendUpdate();
         }
@@ -715,24 +785,20 @@ namespace Carbon.Plugins
         {
             var grid = GetGridReference(_hillPosition);
             Server.Broadcast(
-                $"<color=#ffcc00>[KoTH]</color> Új zóna: <color=#ff6600>{grid}</color>" +
-                $" — kint vagy? Sugársérülés vár!");
+                $"<color=#ffcc00>[KoTH]</color> New zone: <color=#ff6600>{grid}</color>" +
+                $" ({_hillPosition.x:F0}, {_hillPosition.z:F0})" +
+                $" — step inside to earn points! (Map: orange circle)");
         }
 
         private string GetGridReference(Vector3 pos)
         {
-            float mapSize  = TerrainMeta.Size.x;
-            float cellSize = 150f;
-            int   cells    = Mathf.RoundToInt(mapSize / cellSize);
-
-            int col = Mathf.Clamp((int)((pos.x + mapSize / 2f) / mapSize * cells), 0, cells - 1);
-            int row = Mathf.Clamp((int)((1f - (pos.z + mapSize / 2f) / mapSize) * cells), 0, cells - 1);
-
-            string colStr = "";
-            int c = col;
-            do { colStr = (char)('A' + c % 26) + colStr; c = c / 26 - 1; } while (c >= 0);
-
-            return $"{colStr}{row + 1}";
+            float worldSize = World.Size;
+            // ~150m cells — matches Rust's native grid for any map size
+            int   cells    = Mathf.Max(1, Mathf.FloorToInt(worldSize / 150f));
+            float cellSize = worldSize / cells;
+            int col = Mathf.Clamp(Mathf.FloorToInt((pos.x + worldSize * 0.5f) / cellSize), 0, cells - 1);
+            int row = Mathf.Clamp(Mathf.FloorToInt((worldSize * 0.5f - pos.z) / cellSize), 0, cells - 1);
+            return $"{(char)('A' + col)}{row}";
         }
 
         // ── Weapon cycle ───────────────────────────────────────────────
@@ -748,40 +814,66 @@ namespace Carbon.Plugins
                 GiveGlobalWeapon(player);
 
             var label = _cfg.Loadouts[_weaponIndex].Label;
-            Server.Broadcast($"[GunGame] Következő fegyver: <color=#ffcc00>{label}</color>");
+            Server.Broadcast($"[GunGame] Next weapon: <color=#ffcc00>{label}</color>");
         }
 
         private void AnnounceRoundStats()
         {
             if (_roundStats.Count == 0 || _roundStats.Values.All(s => s.Kills == 0 && s.Deaths == 0)) return;
 
-            var top3 = _roundStats.Values
-                .OrderByDescending(s => s.Kills)
-                .ThenByDescending(s => s.KDA)
-                .Take(3)
-                .ToList();
-
-            Server.Broadcast("<color=#ffcc00>[GunGame] ══ Kör vége ══</color>");
-            for (int i = 0; i < top3.Count; i++)
+            if (_activeMode == GameMode.KingOfTheHill)
             {
-                var s       = top3[i];
-                var kothStr = _activeMode == GameMode.KingOfTheHill
-                    ? $" | KoTH: <color=#ffaa00>{s.KothScore}</color>" : "";
-                Server.Broadcast(
-                    $"<color=#ffcc00>[GunGame]</color> #{i + 1} <color=#ffff00>{s.Name}</color>" +
-                    $" — <color=#aaffaa>{s.Kills}K</color> / {s.Deaths}D | KDA: <color=#aaffaa>{s.KDA:F2}</color>{kothStr}");
+                var kothTop = _roundStats.Values
+                    .OrderByDescending(s => s.KothScore)
+                    .Take(3)
+                    .ToList();
+
+                Server.Broadcast("<color=#ffcc00>[KoTH] ══ Round Over – Leaderboard ══</color>");
+                for (int i = 0; i < kothTop.Count; i++)
+                {
+                    var s = kothTop[i];
+                    Server.Broadcast(
+                        $"<color=#ffcc00>[KoTH]</color> #{i + 1} <color=#ffff00>{s.Name}</color>" +
+                        $" — <color=#aaffaa>{s.KothScore} pts</color>" +
+                        $" ({s.Kills}K · {s.Deaths}D)");
+                }
+
+                foreach (var player in BasePlayer.activePlayerList)
+                {
+                    if (!_roundStats.TryGetValue(player.userID, out var ps)) continue;
+                    var rank    = kothTop.FindIndex(s => s.SteamId == player.userID) + 1;
+                    var rankStr = rank > 0 ? $" (#{rank})" : "";
+                    player.ChatMessage(
+                        $"<color=#aaffff>[KoTH] Your score{rankStr}:</color>" +
+                        $" <color=#aaffaa>{ps.KothScore} pts</color> | {ps.Kills}K / {ps.Deaths}D");
+                }
             }
-
-            foreach (var player in BasePlayer.activePlayerList)
+            else
             {
-                if (!_roundStats.TryGetValue(player.userID, out var ps)) continue;
+                var top3 = _roundStats.Values
+                    .OrderByDescending(s => s.Kills)
+                    .ThenByDescending(s => s.KDA)
+                    .Take(3)
+                    .ToList();
 
-                var rank    = top3.FindIndex(s => s.SteamId == player.userID) + 1;
-                var rankStr = rank > 0 ? $" (#{rank})" : "";
-                var pkoth   = _activeMode == GameMode.KingOfTheHill ? $" | KoTH: {ps.KothScore}" : "";
-                player.ChatMessage(
-                    $"<color=#aaffff>[GunGame] Saját statod{rankStr}:</color>" +
-                    $" {ps.Kills}K / {ps.Deaths}D | KDA: {ps.KDA:F2}{pkoth}");
+                Server.Broadcast("<color=#ffcc00>[GunGame] ══ Round Over ══</color>");
+                for (int i = 0; i < top3.Count; i++)
+                {
+                    var s = top3[i];
+                    Server.Broadcast(
+                        $"<color=#ffcc00>[GunGame]</color> #{i + 1} <color=#ffff00>{s.Name}</color>" +
+                        $" — <color=#aaffaa>{s.Kills}K</color> / {s.Deaths}D | KDA: <color=#aaffaa>{s.KDA:F2}</color>");
+                }
+
+                foreach (var player in BasePlayer.activePlayerList)
+                {
+                    if (!_roundStats.TryGetValue(player.userID, out var ps)) continue;
+                    var rank    = top3.FindIndex(s => s.SteamId == player.userID) + 1;
+                    var rankStr = rank > 0 ? $" (#{rank})" : "";
+                    player.ChatMessage(
+                        $"<color=#aaffff>[GunGame] Your stats{rankStr}:</color>" +
+                        $" {ps.Kills}K / {ps.Deaths}D | KDA: {ps.KDA:F2}");
+                }
             }
         }
 
@@ -892,11 +984,10 @@ namespace Carbon.Plugins
                 var stats = GetOrCreateStats(attacker.userID, attacker.displayName);
                 stats.Kills++;
 
-                if (_activeMode == GameMode.KingOfTheHill &&
-                    Vector3.Distance(attacker.transform.position, _hillPosition) <= _cfg.KothRadius)
+                if (_activeMode == GameMode.KingOfTheHill)
                 {
-                    stats.KothScore += 2;
-                    attacker.ChatMessage("<color=#ffcc00>[KoTH]</color> +2 pont – zónában öltél!");
+                    stats.KothScore += _cfg.KothKillPoints;
+                    attacker.ChatMessage($"<color=#ffcc00>[KoTH]</color> +{_cfg.KothKillPoints} pts! Total: <color=#aaffaa>{stats.KothScore}</color>");
                 }
             }
         }
@@ -933,18 +1024,30 @@ namespace Carbon.Plugins
         [ChatCommand("gg")]
         private void CmdGg(BasePlayer player, string command, string[] args)
         {
-            if (!player.IsAdmin) { player.ChatMessage("Csak adminok használhatják."); return; }
+            if (!player.IsAdmin) { player.ChatMessage("[GunGame] Admins only."); return; }
 
-            if (args.Length == 0)
+            var sub = args.Length > 0 ? args[0].ToLower() : "help";
+
+            if (sub == "help")
             {
-                player.ChatMessage($"[GunGame] Mód: <color=#ffcc00>{_activeMode}</color> | Parancsok: /gg mode <gungame|koth> | /gg hill | /gg spawn");
+                player.ChatMessage(
+                    "<color=#ffcc00>[GunGame] ── Admin Commands ──────────────────</color>\n" +
+                    "<color=#ffffff>/gg help</color>               – show this list\n" +
+                    "<color=#ffffff>/gg mode gungame</color>       – switch to Gun Game mode\n" +
+                    "<color=#ffffff>/gg mode koth</color>          – switch to King of the Hill mode\n" +
+                    "<color=#ffffff>/gg hill</color>               – show current KoTH zone grid + coords\n" +
+                    "<color=#ffffff>/gg spawn</color>              – regenerate spawn points\n" +
+                    "<color=#aaffff>── Player Commands ──────────────────────────</color>\n" +
+                    "<color=#ffffff>/stats</color>                 – live leaderboard (top 5)\n" +
+                    "<color=#ffffff>/v car|bike|moto</color>       – spawn a vehicle (5 min cooldown)\n" +
+                    $"<color=#aaaaaa>Current mode: {_activeMode} | World size: {World.Size}m</color>");
                 return;
             }
 
-            switch (args[0].ToLower())
+            switch (sub)
             {
                 case "mode":
-                    if (args.Length < 2) { player.ChatMessage("Használat: /gg mode <gungame|koth>"); return; }
+                    if (args.Length < 2) { player.ChatMessage("Usage: /gg mode <gungame|koth>"); return; }
 
                     if (args[1].ToLower() == "koth" || args[1].ToLower() == "kingofthehill")
                     {
@@ -952,7 +1055,7 @@ namespace Carbon.Plugins
                         _cfg.Mode    = "KingOfTheHill";
                         SaveConfig();
                         StartKingOfTheHill();
-                        Server.Broadcast("<color=#ffcc00>[GunGame]</color> Módváltás: <color=#ff6600>King of the Hill</color>!");
+                        Server.Broadcast("<color=#ffcc00>[GunGame]</color> Mode changed: <color=#ff6600>King of the Hill</color>!");
                     }
                     else
                     {
@@ -960,25 +1063,138 @@ namespace Carbon.Plugins
                         _cfg.Mode   = "GunGame";
                         SaveConfig();
                         StopKingOfTheHill();
-                        Server.Broadcast("<color=#ffcc00>[GunGame]</color> Módváltás: <color=#aaffaa>Gun Game</color>!");
+                        Server.Broadcast("<color=#ffcc00>[GunGame]</color> Mode changed: <color=#aaffaa>Gun Game</color>!");
                     }
                     break;
 
                 case "hill":
                     if (_activeMode != GameMode.KingOfTheHill)
-                        { player.ChatMessage("Csak KoTH módban érhető el."); return; }
-                    player.ChatMessage($"[KoTH] Zóna: <color=#ff6600>{GetGridReference(_hillPosition)}</color> | Sugár: {_cfg.KothRadius}m");
+                        { player.ChatMessage("[GunGame] Only available in KoTH mode."); return; }
+                    player.ChatMessage($"[KoTH] Zone: <color=#ff6600>{GetGridReference(_hillPosition)}</color> | Radius: {_cfg.KothRadius}m");
                     break;
 
                 case "spawn":
                     GenerateSpawnPoints(60);
-                    player.ChatMessage($"[GunGame] {_spawnPoints.Count} spawn pont újragenerálva.");
+                    player.ChatMessage($"[GunGame] {_spawnPoints.Count} spawn points regenerated.");
                     break;
 
                 default:
-                    player.ChatMessage("Parancsok: /gg mode <gungame|koth> | /gg hill | /gg spawn");
+                    player.ChatMessage("[GunGame] Unknown command. Use /gg help for the command list.");
                     break;
             }
+        }
+
+        // ── Chat commands (everyone) ───────────────────────────────────
+        [ChatCommand("stats")]
+        private void CmdStats(BasePlayer player, string command, string[] args)
+        {
+            if (_roundStats.Count == 0)
+            {
+                player.ChatMessage("<color=#aaffff>[Stats]</color> No stats yet this round.");
+                return;
+            }
+
+            if (_activeMode == GameMode.KingOfTheHill)
+            {
+                var sorted = _roundStats.Values
+                    .OrderByDescending(s => s.KothScore)
+                    .ToList();
+                var top5 = sorted.Take(5).ToList();
+
+                player.ChatMessage("<color=#ffcc00>[KoTH] ── Live Leaderboard ──────────</color>");
+                for (int i = 0; i < top5.Count; i++)
+                {
+                    var s      = top5[i];
+                    var marker = s.SteamId == player.userID ? " <color=#ff6600>◄</color>" : "";
+                    player.ChatMessage(
+                        $"<color=#ffcc00>#{i + 1}</color> <color=#ffff00>{s.Name}</color>" +
+                        $" — <color=#aaffaa>{s.KothScore} pts</color> ({s.Kills}K / {s.Deaths}D){marker}");
+                }
+
+                var ownRank = sorted.FindIndex(s => s.SteamId == player.userID) + 1;
+                if (ownRank > 5 && _roundStats.TryGetValue(player.userID, out var ps))
+                    player.ChatMessage(
+                        $"Your rank: <color=#aaffff>#{ownRank}</color>" +
+                        $" — <color=#aaffaa>{ps.KothScore} pts</color> ({ps.Kills}K / {ps.Deaths}D) <color=#ff6600>◄</color>");
+            }
+            else
+            {
+                var sorted = _roundStats.Values
+                    .OrderByDescending(s => s.Kills)
+                    .ThenByDescending(s => s.KDA)
+                    .ToList();
+                var top5 = sorted.Take(5).ToList();
+
+                player.ChatMessage("<color=#ffcc00>[GunGame] ── Live Leaderboard ──────</color>");
+                for (int i = 0; i < top5.Count; i++)
+                {
+                    var s      = top5[i];
+                    var marker = s.SteamId == player.userID ? " <color=#ff6600>◄</color>" : "";
+                    player.ChatMessage(
+                        $"<color=#ffcc00>#{i + 1}</color> <color=#ffff00>{s.Name}</color>" +
+                        $" — <color=#aaffaa>{s.Kills}K</color> / {s.Deaths}D | KDA: {s.KDA:F2}{marker}");
+                }
+
+                var ownRank = sorted.FindIndex(s => s.SteamId == player.userID) + 1;
+                if (ownRank > 5 && _roundStats.TryGetValue(player.userID, out var ps))
+                    player.ChatMessage(
+                        $"Your rank: <color=#aaffff>#{ownRank}</color>" +
+                        $" — {ps.Kills}K / {ps.Deaths}D | KDA: {ps.KDA:F2} <color=#ff6600>◄</color>");
+            }
+        }
+
+        [ChatCommand("v")]
+        private void CmdVehicle(BasePlayer player, string command, string[] args)
+        {
+            if (args.Length == 0)
+            {
+                player.ChatMessage("<color=#aaffff>[Vehicle]</color> Usage: /v <car|bike|moto>");
+                return;
+            }
+
+            var now = UnityEngine.Time.realtimeSinceStartup;
+            if (_vehicleCooldowns.TryGetValue(player.userID, out var lastSpawn))
+            {
+                var elapsed = now - lastSpawn;
+                if (elapsed < _cfg.VehicleCooldown)
+                {
+                    var remaining = Mathf.CeilToInt(_cfg.VehicleCooldown - elapsed);
+                    player.ChatMessage($"<color=#ff6666>[Vehicle]</color> Cooldown: {remaining}s remaining.");
+                    return;
+                }
+            }
+
+            string prefab;
+            switch (args[0].ToLower())
+            {
+                case "car":  prefab = _cfg.VehicleCarPrefab;  break;
+                case "bike": prefab = _cfg.VehicleBikePrefab; break;
+                case "moto": prefab = _cfg.VehicleMotoPrefab; break;
+                default:
+                    player.ChatMessage("<color=#aaffff>[Vehicle]</color> Usage: /v <car|bike|moto>");
+                    return;
+            }
+
+            var forward  = player.eyes.HeadForward();
+            forward.y    = 0f;
+            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
+            forward.Normalize();
+
+            var spawnPos = player.transform.position + forward * 5f;
+            spawnPos.y   = TerrainMeta.HeightMap.GetHeight(new Vector3(spawnPos.x, 0f, spawnPos.z)) + 0.3f;
+
+            var rot    = Quaternion.Euler(0f, player.eyes.rotation.eulerAngles.y, 0f);
+            var entity = GameManager.server.CreateEntity(prefab, spawnPos, rot);
+            if (entity == null)
+            {
+                Puts($"[GunGame] Vehicle spawn failed — prefab not found: {prefab}");
+                player.ChatMessage("<color=#ff6666>[Vehicle]</color> Failed to spawn vehicle. Check server log for prefab path.");
+                return;
+            }
+
+            entity.Spawn();
+            _vehicleCooldowns[player.userID] = now;
+            player.ChatMessage($"<color=#aaffff>[Vehicle]</color> Spawned! Cooldown: {_cfg.VehicleCooldown}s.");
         }
     }
 }
