@@ -15,21 +15,15 @@
  * CanLootEntity                – blocks opening corpses, bags, containers
  * CanLootPlayer                – blocks player-on-player looting
  *
- * GLOBAL STATE
+ * MILESTONE 3 CHANGES
  * ──────────────────────────────────────────────────────────────────────
- * _weaponIndex  int                           – current loadout index (wraps around)
- * _roundStats   Dictionary<ulong, RoundStats>  – kills/deaths per player this round
- *
- * LOADOUT STRUCTURE
- * ──────────────────────────────────────────────────────────────────────
- * Loadout.Weapon        – weapon shortname                → containerBelt
- * Loadout.Attachments   – weapon mod shortnames           → weapon.contents
- * Loadout.Ammo          – ammo shortname + count          → containerMain
- * Loadout.Wear          – armor/clothing shortnames       → containerWear
- * Loadout.Extras        – ItemStack list; container field controls destination:
- *                           "belt" → containerBelt
- *                           "wear" → containerWear
- *                           ""/"main" → containerMain  (default)
+ * • All loadouts: binoculars (belt)
+ * • Heavy armor (metal.facemask): nightvision.goggles in main inventory
+ * • Medium armor (coffeecan): torch in belt
+ * • Light armor (hoodie/tshirt): torch or flashlight.held in belt
+ * • All loadouts: can.beans added, bandage 5→10, more syringes
+ * • 7 new loadouts: L96, M39 Rifle, Custom SMG, Revolver,
+ *                   Semi-Auto Pistol, Compound Bow, Double Barrel
  */
 
 using System.Collections.Generic;
@@ -39,7 +33,7 @@ using Newtonsoft.Json;
 
 namespace Carbon.Plugins
 {
-    [Info("ArenaGunGame", "dev", "1.0.0")]
+    [Info("ArenaGunGame", "dev", "1.1.0")]
     [Description("Standalone Arena GunGame – zero dependencies")]
     public class ArenaGunGame : CarbonPlugin
     {
@@ -54,7 +48,7 @@ namespace Carbon.Plugins
             [JsonProperty("Loadouts")]
             public List<Loadout> Loadouts = new List<Loadout>
             {
-                // 1 ── M249 – heavy suppression
+                // 1 ── M249 – heavy suppression  [heavy armor → NVG in main]
                 new Loadout
                 {
                     Label       = "M249",
@@ -69,15 +63,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("syringe.medical",3,  "main"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",        1,  "belt"),
+                        new ItemStack("binoculars",          1,  "belt"),
+                        new ItemStack("nightvision.goggles", 1,  "main"),
+                        new ItemStack("syringe.medical",     4,  "main"),
+                        new ItemStack("bandage",             10, "main"),
+                        new ItemStack("can.tuna",            3,  "main"),
+                        new ItemStack("can.beans",           2,  "main"),
+                        new ItemStack("lowgradefuel",        30, "main"),
                     }
                 },
 
-                // 2 ── AK-47 – standard assault
+                // 2 ── AK-47 – standard assault  [heavy armor → NVG in main]
                 new Loadout
                 {
                     Label       = "AK-47",
@@ -92,15 +89,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("syringe.medical",2,  "main"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",        1,  "belt"),
+                        new ItemStack("binoculars",          1,  "belt"),
+                        new ItemStack("nightvision.goggles", 1,  "main"),
+                        new ItemStack("syringe.medical",     3,  "main"),
+                        new ItemStack("bandage",             10, "main"),
+                        new ItemStack("can.tuna",            3,  "main"),
+                        new ItemStack("can.beans",           2,  "main"),
+                        new ItemStack("lowgradefuel",        30, "main"),
                     }
                 },
 
-                // 3 ── LR-300 – scoped assault
+                // 3 ── LR-300 – scoped assault  [heavy armor → NVG in main]
                 new Loadout
                 {
                     Label       = "LR-300",
@@ -115,20 +115,23 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("syringe.medical",2,  "main"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",        1,  "belt"),
+                        new ItemStack("binoculars",          1,  "belt"),
+                        new ItemStack("nightvision.goggles", 1,  "main"),
+                        new ItemStack("syringe.medical",     3,  "main"),
+                        new ItemStack("bandage",             10, "main"),
+                        new ItemStack("can.tuna",            3,  "main"),
+                        new ItemStack("can.beans",           2,  "main"),
+                        new ItemStack("lowgradefuel",        30, "main"),
                     }
                 },
 
-                // 4 ── SPAS-12 – close combat
+                // 4 ── SPAS-12 – close combat  [medium armor → torch]
                 new Loadout
                 {
                     Label       = "SPAS-12",
                     Weapon      = "shotgun.spas12",
-                    Attachments = new List<string> { "weapon.mod.lasersight" },
+                    Attachments = new List<string> { "weapon.mod.lasersight", "weapon.mod.flashlight" },
                     Ammo        = "ammo.shotgun",
                     AmmoCount   = 640,
                     Wear        = new List<string>
@@ -138,15 +141,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("syringe.medical",2,  "main"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 3,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
                     }
                 },
 
-                // 5 ── Pump Shotgun – slug
+                // 5 ── Pump Shotgun – slug  [medium armor → torch]
                 new Loadout
                 {
                     Label       = "Pump Shotgun",
@@ -161,15 +167,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("syringe.medical",2,  "main"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 3,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
                     }
                 },
 
-                // 6 ── MP5 – silenced SMG
+                // 6 ── MP5 – silenced SMG  [medium armor → torch]
                 new Loadout
                 {
                     Label       = "MP5",
@@ -184,15 +193,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("syringe.medical",1,  "main"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
                     }
                 },
 
-                // 7 ── Thompson – mid SMG
+                // 7 ── Thompson – mid SMG  [light armor → torch]
                 new Loadout
                 {
                     Label       = "Thompson",
@@ -206,14 +218,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
                     }
                 },
 
-                // 8 ── Semi-Auto Rifle – mid range
+                // 8 ── Semi-Auto Rifle – mid range  [light armor → torch]
                 new Loadout
                 {
                     Label       = "Semi-Auto Rifle",
@@ -227,15 +243,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("syringe.medical",1,  "main"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
                     }
                 },
 
-                // 9 ── Python – revolver
+                // 9 ── Python – revolver  [light armor → flashlight]
                 new Loadout
                 {
                     Label       = "Python",
@@ -249,14 +268,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("flashlight.held", 1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
                     }
                 },
 
-                // 10 ── Bolt Action – sniper
+                // 10 ── Bolt Action – sniper  [medium armor → torch]
                 new Loadout
                 {
                     Label       = "Bolt Action Sniper",
@@ -271,15 +294,18 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("syringe.medical",1,  "main"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
                     }
                 },
 
-                // 11 ── Crossbow – primitive last round
+                // 11 ── Crossbow – primitive  [light armor → torch]
                 new Loadout
                 {
                     Label       = "Crossbow",
@@ -293,10 +319,191 @@ namespace Carbon.Plugins
                     },
                     Extras = new List<ItemStack>
                     {
-                        new ItemStack("knife.combat",   1,  "belt"),
-                        new ItemStack("bandage",        5,  "main"),
-                        new ItemStack("can.tuna",       2,  "main"),
-                        new ItemStack("lowgradefuel",   30, "main"),
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
+                    }
+                },
+
+                // 12 ── L96 – elite sniper  [medium armor → torch]
+                new Loadout
+                {
+                    Label       = "L96 Sniper",
+                    Weapon      = "rifle.l96",
+                    Attachments = new List<string> { "weapon.mod.8x.scope" },
+                    Ammo        = "ammo.rifle.hv",
+                    AmmoCount   = 200,
+                    Wear        = new List<string>
+                    {
+                        "metal.facemask", "jacket", "pants",
+                        "burlap.gloves", "shoes.boots"
+                    },
+                    Extras = new List<ItemStack>
+                    {
+                        new ItemStack("knife.combat",        1,  "belt"),
+                        new ItemStack("binoculars",          1,  "belt"),
+                        new ItemStack("nightvision.goggles", 1,  "main"),
+                        new ItemStack("syringe.medical",     2,  "main"),
+                        new ItemStack("bandage",             10, "main"),
+                        new ItemStack("can.tuna",            3,  "main"),
+                        new ItemStack("can.beans",           2,  "main"),
+                        new ItemStack("lowgradefuel",        30, "main"),
+                    }
+                },
+
+                // 13 ── M39 – DMR  [medium armor → torch]
+                new Loadout
+                {
+                    Label       = "M39 Rifle",
+                    Weapon      = "rifle.m39",
+                    Attachments = new List<string> { "weapon.mod.small.scope", "weapon.mod.muzzlebrake" },
+                    Ammo        = "ammo.rifle.semiauto",
+                    AmmoCount   = 800,
+                    Wear        = new List<string>
+                    {
+                        "coffeecan.helmet", "jacket", "pants",
+                        "burlap.gloves", "shoes.boots"
+                    },
+                    Extras = new List<ItemStack>
+                    {
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
+                    }
+                },
+
+                // 14 ── Custom SMG – silenced  [light armor → torch]
+                new Loadout
+                {
+                    Label       = "Custom SMG",
+                    Weapon      = "smg.2",
+                    Attachments = new List<string> { "weapon.mod.silencer", "weapon.mod.lasersight" },
+                    Ammo        = "ammo.pistol",
+                    AmmoCount   = 1800,
+                    Wear        = new List<string>
+                    {
+                        "hoodie", "pants", "burlap.gloves", "shoes.boots"
+                    },
+                    Extras = new List<ItemStack>
+                    {
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
+                    }
+                },
+
+                // 15 ── Revolver  [light armor → flashlight]
+                new Loadout
+                {
+                    Label       = "Revolver",
+                    Weapon      = "pistol.revolver",
+                    Attachments = new List<string> { "weapon.mod.lasersight" },
+                    Ammo        = "ammo.pistol",
+                    AmmoCount   = 360,
+                    Wear        = new List<string>
+                    {
+                        "tshirt", "pants", "shoes.boots"
+                    },
+                    Extras = new List<ItemStack>
+                    {
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("flashlight.held", 1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
+                    }
+                },
+
+                // 16 ── Semi-Auto Pistol  [light armor → flashlight]
+                new Loadout
+                {
+                    Label       = "Semi-Auto Pistol",
+                    Weapon      = "pistol.semiauto",
+                    Attachments = new List<string> { "weapon.mod.silencer", "weapon.mod.lasersight" },
+                    Ammo        = "ammo.pistol",
+                    AmmoCount   = 600,
+                    Wear        = new List<string>
+                    {
+                        "tshirt", "pants", "shoes.boots"
+                    },
+                    Extras = new List<ItemStack>
+                    {
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("flashlight.held", 1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
+                    }
+                },
+
+                // 17 ── Compound Bow  [light armor → torch]
+                new Loadout
+                {
+                    Label       = "Compound Bow",
+                    Weapon      = "bow.compound",
+                    Attachments = new List<string>(),
+                    Ammo        = "arrow.hv",
+                    AmmoCount   = 200,
+                    Wear        = new List<string>
+                    {
+                        "tshirt", "pants", "shoes.boots"
+                    },
+                    Extras = new List<ItemStack>
+                    {
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("torch",           1,  "belt"),
+                        new ItemStack("syringe.medical", 2,  "main"),
+                        new ItemStack("bandage",         10, "main"),
+                        new ItemStack("can.tuna",        3,  "main"),
+                        new ItemStack("can.beans",       2,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
+                    }
+                },
+
+                // 18 ── Double Barrel – extreme CQC  [light armor → flashlight]
+                new Loadout
+                {
+                    Label       = "Double Barrel",
+                    Weapon      = "shotgun.double",
+                    Attachments = new List<string> { "weapon.mod.lasersight" },
+                    Ammo        = "ammo.shotgun",
+                    AmmoCount   = 200,
+                    Wear        = new List<string>
+                    {
+                        "tshirt", "pants", "shoes.boots"
+                    },
+                    Extras = new List<ItemStack>
+                    {
+                        new ItemStack("knife.combat",    1,  "belt"),
+                        new ItemStack("binoculars",      1,  "belt"),
+                        new ItemStack("flashlight.held", 1,  "belt"),
+                        new ItemStack("syringe.medical", 3,  "main"),
+                        new ItemStack("bandage",         15, "main"),
+                        new ItemStack("can.tuna",        4,  "main"),
+                        new ItemStack("can.beans",       3,  "main"),
+                        new ItemStack("lowgradefuel",    30, "main"),
                     }
                 },
             };
@@ -317,7 +524,7 @@ namespace Carbon.Plugins
         {
             [JsonProperty("shortname")]   public string Shortname;
             [JsonProperty("amount")]      public int    Amount;
-            [JsonProperty("container")]   public string Container; // "belt", "wear", or "" / "main"
+            [JsonProperty("container")]   public string Container;
 
             public ItemStack(string sn, int amt, string container = "main")
             {
@@ -371,7 +578,6 @@ namespace Carbon.Plugins
         {
             if (_roundStats.Count == 0 || _roundStats.Values.All(s => s.Kills == 0 && s.Deaths == 0)) return;
 
-            // Top 3 by kills, tiebreak by KDA
             var top3 = _roundStats.Values
                 .OrderByDescending(s => s.Kills)
                 .ThenByDescending(s => s.KDA)
@@ -387,7 +593,6 @@ namespace Carbon.Plugins
                     $" — <color=#aaffaa>{s.Kills}K</color> / {s.Deaths}D | KDA: <color=#aaffaa>{s.KDA:F2}</color>");
             }
 
-            // Personal stats whisper to each online player
             foreach (var player in BasePlayer.activePlayerList)
             {
                 if (!_roundStats.TryGetValue(player.userID, out var ps)) continue;
@@ -421,7 +626,6 @@ namespace Carbon.Plugins
 
             var loadout = _cfg.Loadouts[_weaponIndex];
 
-            // Weapon + attachments
             var weapon = ItemManager.CreateByName(loadout.Weapon, 1);
             if (weapon == null) return;
 
@@ -441,7 +645,6 @@ namespace Carbon.Plugins
                 return;
             }
 
-            // Ammo → main
             if (!string.IsNullOrEmpty(loadout.Ammo))
             {
                 var ammo = ItemManager.CreateByName(loadout.Ammo, loadout.AmmoCount);
@@ -449,7 +652,6 @@ namespace Carbon.Plugins
                     player.inventory.GiveItem(ammo, player.inventory.containerMain);
             }
 
-            // Clothing → wear
             foreach (var wearSn in loadout.Wear)
             {
                 var cloth = ItemManager.CreateByName(wearSn, 1);
@@ -459,7 +661,6 @@ namespace Carbon.Plugins
                     cloth.MoveToContainer(player.inventory.containerMain);
             }
 
-            // Extras – routed by Container field
             foreach (var extra in loadout.Extras)
             {
                 var item = ItemManager.CreateByName(extra.Shortname, extra.Amount);
@@ -503,24 +704,19 @@ namespace Carbon.Plugins
                 GetOrCreateStats(attacker.userID, attacker.displayName).Kills++;
         }
 
-        // Prevent tree/rock/barrel from taking damage (no drops, no destruction)
         private void OnEntityTakeDamage(BaseCombatEntity entity, HitInfo info)
         {
             if (entity is TreeEntity || entity is OreResourceEntity || entity is LootContainer)
                 info?.damageTypes?.ScaleAll(0f);
         }
 
-        // Prevent resource yield from dispensers even if hit effects slip through
         private object OnDispenserGather(ResourceDispenser dispenser, BaseEntity entity, Item item) => false;
         private object OnDispenserBonus(ResourceDispenser dispenser, BasePlayer player, Item item) => false;
 
-        // Prevent picking up items from the ground (wood piles, stone, ore nodes)
         private object CanPickupItem(BasePlayer player, Item item) => false;
 
-        // Prevent picking up collectibles (wood logs, stone chunks, ore, berries, etc.)
         private object OnCollectiblePickup(CollectibleEntity collectible, BasePlayer player) => false;
 
-        // Block looting corpses, bags, containers
         private object CanLootEntity(BasePlayer player, BaseEntity entity)
         {
             if (entity is LootableCorpse || entity is DroppedItemContainer ||
