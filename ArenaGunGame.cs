@@ -719,6 +719,10 @@ namespace Carbon.Plugins
 
         private object CanLootEntity(BasePlayer player, BaseEntity entity)
         {
+            // Allow vehicle fuel storage so players can refuel (lowgradefuel exception)
+            if (entity is StorageContainer sc && sc.ShortPrefabName.Contains("fuel"))
+                return null;
+
             if (entity is LootableCorpse || entity is DroppedItemContainer ||
                 entity is LootContainer   || entity is StorageContainer)
                 return false;
