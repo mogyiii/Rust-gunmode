@@ -30,6 +30,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Carbon.Base;
 using Newtonsoft.Json;
+using UnityEngine;
 
 namespace Carbon.Plugins
 {
@@ -550,12 +551,43 @@ namespace Carbon.Plugins
         // ── Global state ───────────────────────────────────────────────
         private int   _weaponIndex;
         private readonly Dictionary<ulong, RoundStats> _roundStats = new Dictionary<ulong, RoundStats>();
+        private readonly List<Vector3> _spawnPoints = new List<Vector3>();
 
         // ── Lifecycle ──────────────────────────────────────────────────
         private void OnServerInitialized()
         {
             _weaponIndex = 0;
+            GenerateSpawnPoints(60);
             timer.Repeat(_cfg.CycleInterval, 0, CycleWeapons);
+        }
+
+        // ── Spawn ──────────────────────────────────────────────────────
+        private void GenerateSpawnPoints(int count)
+        {
+            _spawnPoints.Clear();
+            if (TerrainMeta.HeightMap == null) return;
+
+            float halfSize = TerrainMeta.Size.x * 0.38f;
+            int   attempts = 0;
+
+            while (_spawnPoints.Count < count && attempts < count * 10)
+            {
+                attempts++;
+                float x = Random.Range(-halfSize, halfSize);
+                float z = Random.Range(-halfSize, halfSize);
+                float y = TerrainMeta.HeightMap.GetHeight(x, z);
+
+                if (y > 1f)
+                    _spawnPoints.Add(new Vector3(x, y + 0.5f, z));
+            }
+
+            Puts($"[GunGame] {_spawnPoints.Count} spawn pont generálva.");
+        }
+
+        private Vector3 GetRandomSpawnPoint()
+        {
+            if (_spawnPoints.Count == 0) return Vector3.zero;
+            return _spawnPoints[Random.Range(0, _spawnPoints.Count)];
         }
 
         // ── Weapon cycle ───────────────────────────────────────────────
@@ -691,7 +723,14 @@ namespace Carbon.Plugins
 
         // ── Hooks ──────────────────────────────────────────────────────
 
-        private void OnPlayerRespawned(BasePlayer player) => GiveGlobalWeapon(player);
+        private void OnPlayerRespawned(BasePlayer player)
+        {
+            var pos = GetRandomSpawnPoint();
+            if (pos != Vector3.zero)
+                player.Teleport(pos);
+
+            GiveGlobalWeapon(player);
+        }
 
         private void OnPlayerConnected(BasePlayer player) => GiveGlobalWeapon(player);
 
