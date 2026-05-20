@@ -37,7 +37,7 @@ using UnityEngine;
 
 namespace Carbon.Plugins
 {
-    [Info("ArenaGunGame", "dev", "1.1.0")]
+    [Info("ArenaGunGame", "Mogy", "1.1.0")]
     [Description("Standalone Arena GunGame – zero dependencies")]
     public class ArenaGunGame : CarbonPlugin
     {
@@ -73,13 +73,13 @@ namespace Carbon.Plugins
             public float VehicleCooldown = 300f;
 
             [JsonProperty("Vehicle: car prefab")]
-            public string VehicleCarPrefab = "assets/content/vehicles/modularcar/car_body.entity.prefab";
+            public string VehicleCarPrefab = "assets/content/vehicles/modularcar/modular_car.entity.prefab";
 
             [JsonProperty("Vehicle: bike prefab")]
-            public string VehicleBikePrefab = "assets/content/vehicles/bicycle/bicycle.entity.prefab";
+            public string VehicleBikePrefab = "assets/content/vehicles/motorbike/motorbike.entity.prefab";
 
             [JsonProperty("Vehicle: motorbike prefab")]
-            public string VehicleMotoPrefab = "assets/content/vehicles/bikes/motorbike.entity.prefab";
+            public string VehicleMotoPrefab = "assets/content/vehicles/motorbike/motorbike_sidecar.entity.prefab";
 
             [JsonProperty("Loadouts")]
             public List<Loadout> Loadouts = new List<Loadout>
