@@ -69,18 +69,6 @@ namespace Carbon.Plugins
             [JsonProperty("KoTH: tick interval (seconds)")]
             public float KothRadInterval = 1f;
 
-            [JsonProperty("Vehicle: spawn cooldown (seconds)")]
-            public float VehicleCooldown = 300f;
-
-            [JsonProperty("Vehicle: car prefab")]
-            public string VehicleCarPrefab = "assets/content/vehicles/modularcar/modular_car.entity.prefab";
-
-            [JsonProperty("Vehicle: bike prefab")]
-            public string VehicleBikePrefab = "assets/content/vehicles/motorbike/motorbike.entity.prefab";
-
-            [JsonProperty("Vehicle: motorbike prefab")]
-            public string VehicleMotoPrefab = "assets/content/vehicles/motorbike/motorbike_sidecar.entity.prefab";
-
             [JsonProperty("Loadouts")]
             public List<Loadout> Loadouts = new List<Loadout>
             {
@@ -615,8 +603,6 @@ namespace Carbon.Plugins
         private Action                 _kothTickTimer;
         private readonly HashSet<ulong> _inZonePlayers = new HashSet<ulong>();
 
-        // Vehicle cooldowns: steamId → Time.realtimeSinceStartup of last spawn
-        private readonly Dictionary<ulong, float> _vehicleCooldowns = new Dictionary<ulong, float>();
 
         // ── Lifecycle ──────────────────────────────────────────────────
         private void OnServerInitialized()
@@ -976,10 +962,12 @@ namespace Carbon.Plugins
 
         private void OnPlayerDeath(BasePlayer player, HitInfo info)
         {
+            if (player.IsNpc) return;
+
             GetOrCreateStats(player.userID, player.displayName).Deaths++;
 
             var attacker = info?.InitiatorPlayer;
-            if (attacker != null && attacker.userID != player.userID)
+            if (attacker != null && !attacker.IsNpc && attacker.userID != player.userID)
             {
                 var stats = GetOrCreateStats(attacker.userID, attacker.displayName);
                 stats.Kills++;
@@ -1039,7 +1027,6 @@ namespace Carbon.Plugins
                     "<color=#ffffff>/gg spawn</color>              – regenerate spawn points\n" +
                     "<color=#aaffff>── Player Commands ──────────────────────────</color>\n" +
                     "<color=#ffffff>/stats</color>                 – live leaderboard (top 5)\n" +
-                    "<color=#ffffff>/v car|bike|moto</color>       – spawn a vehicle (5 min cooldown)\n" +
                     $"<color=#aaaaaa>Current mode: {_activeMode} | World size: {World.Size}m</color>");
                 return;
             }
@@ -1143,58 +1130,5 @@ namespace Carbon.Plugins
             }
         }
 
-        [ChatCommand("v")]
-        private void CmdVehicle(BasePlayer player, string command, string[] args)
-        {
-            if (args.Length == 0)
-            {
-                player.ChatMessage("<color=#aaffff>[Vehicle]</color> Usage: /v <car|bike|moto>");
-                return;
-            }
-
-            var now = UnityEngine.Time.realtimeSinceStartup;
-            if (_vehicleCooldowns.TryGetValue(player.userID, out var lastSpawn))
-            {
-                var elapsed = now - lastSpawn;
-                if (elapsed < _cfg.VehicleCooldown)
-                {
-                    var remaining = Mathf.CeilToInt(_cfg.VehicleCooldown - elapsed);
-                    player.ChatMessage($"<color=#ff6666>[Vehicle]</color> Cooldown: {remaining}s remaining.");
-                    return;
-                }
-            }
-
-            string prefab;
-            switch (args[0].ToLower())
-            {
-                case "car":  prefab = _cfg.VehicleCarPrefab;  break;
-                case "bike": prefab = _cfg.VehicleBikePrefab; break;
-                case "moto": prefab = _cfg.VehicleMotoPrefab; break;
-                default:
-                    player.ChatMessage("<color=#aaffff>[Vehicle]</color> Usage: /v <car|bike|moto>");
-                    return;
-            }
-
-            var forward  = player.eyes.HeadForward();
-            forward.y    = 0f;
-            if (forward.sqrMagnitude < 0.01f) forward = Vector3.forward;
-            forward.Normalize();
-
-            var spawnPos = player.transform.position + forward * 5f;
-            spawnPos.y   = TerrainMeta.HeightMap.GetHeight(new Vector3(spawnPos.x, 0f, spawnPos.z)) + 0.3f;
-
-            var rot    = Quaternion.Euler(0f, player.eyes.rotation.eulerAngles.y, 0f);
-            var entity = GameManager.server.CreateEntity(prefab, spawnPos, rot);
-            if (entity == null)
-            {
-                Puts($"[GunGame] Vehicle spawn failed — prefab not found: {prefab}");
-                player.ChatMessage("<color=#ff6666>[Vehicle]</color> Failed to spawn vehicle. Check server log for prefab path.");
-                return;
-            }
-
-            entity.Spawn();
-            _vehicleCooldowns[player.userID] = now;
-            player.ChatMessage($"<color=#aaffff>[Vehicle]</color> Spawned! Cooldown: {_cfg.VehicleCooldown}s.");
-        }
     }
 }
