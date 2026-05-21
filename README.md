@@ -17,10 +17,10 @@
 
 ### Shared Features
 ✅ **Random Terrain-Based Spawns** – 60 spawn points across the map, no more center camp.  
-✅ **Vehicle Spawning** – `/v car|bike|moto` with 5-minute cooldown.  
+✅ **Human-Only Tracking** – Kills/deaths only counted for human players (NPCs filtered out).  
 ✅ **Sandbox Environment** – Trees, ores, barrels are indestructible. No loot from corpses.  
 ✅ **Full Loadouts** – Armor, attachments, ammo, healing items per weapon.  
-✅ **Configurable** – JSON config for weapons, modes, timers, vehicle prefabs.  
+✅ **Configurable** – JSON config for weapons, modes, timers.  
 ✅ **Zero Dependencies** – Standalone; no reliance on other plugins.
 
 ---
@@ -47,9 +47,9 @@
 ### Default Behavior
 
 - **Cycle interval**: 4 minutes (240 seconds)
-- **11 weapons** rotate: M249 → AK → LR-300 → ... → Crossbow
-- **Rounds announce** top killer and best KDA (K/D ratio)
-- **Weapons + ammo + armor** given automatically
+- **Game mode**: Gun Game (switch to KingOfTheHill via `/gg mode koth`)
+- **18 loadouts** rotate with full armor + ammo + attachments + healing items
+- **Rounds announce** top 3 players (by kills in GunGame, by zone points in KoTH)
 
 ---
 
@@ -68,9 +68,6 @@
 | Command | Effect |
 |---|---|
 | `/stats` | Live leaderboard – Top 5 by kills (GunGame) or zone points (KoTH) |
-| `/v car` | Spawn modular car (5 min cooldown) |
-| `/v bike` | Spawn dirt bike/motorbike (5 min cooldown) |
-| `/v moto` | Spawn motorbike with sidecar (5 min cooldown) |
 
 ### Oxide Framework
 | Command | Effect |
@@ -193,20 +190,6 @@
 - **KothRotateInterval**: How long before zone moves to a new location (180s = 3 min)
 - **KothZonePointsPerSec**: Points players earn per second while inside the zone
 - **KothKillPoints**: Bonus points for kills scored inside the zone
-
-### Vehicle Settings
-
-```json
-{
-  "Vehicle: spawn cooldown (seconds)": 300,
-  "Vehicle: car prefab": "assets/content/vehicles/modularcar/modular_car.entity.prefab",
-  "Vehicle: bike prefab": "assets/content/vehicles/motorbike/motorbike.entity.prefab",
-  "Vehicle: motorbike prefab": "assets/content/vehicles/motorbike/motorbike_sidecar.entity.prefab"
-}
-```
-
-- **VehicleCooldown**: Seconds between each player's vehicle spawns (shared across all vehicle types)
-- **Prefab paths**: Configurable for server compatibility (copy exact values from your Rust version)
 
 ### Modify Cycle Time
 
@@ -343,17 +326,6 @@ The plugin includes comprehensive test documentation.
 
 **Fix**: Verify attachment shortname. Weapon still equips; attachment is silently skipped.
 
-### Vehicle spawn fails ("Failed to spawn vehicle")
-
-**Cause**: Invalid prefab path in config (vehicle entity doesn't exist in this Rust version).
-
-**Fix**: Check server console log for `[GunGame] Vehicle spawn failed — prefab not found: ...`. Update the prefab paths in `oxide/config/ArenaGunGame.json` to match your Rust version.
-
-**Known prefab paths** (for reference):
-- Car: `assets/content/vehicles/modularcar/modular_car.entity.prefab`
-- Bike: `assets/content/vehicles/motorbike/motorbike.entity.prefab`
-- Moto: `assets/content/vehicles/motorbike/motorbike_sidecar.entity.prefab`
-
 ### Zone doesn't rotate or is missing in KoTH mode
 
 **Cause**: `KothRotateInterval` set to 0, or zone marked as "destroyed".
@@ -380,8 +352,9 @@ The plugin includes comprehensive test documentation.
 2. **Simple** – Global state, minimal hooks, clear flow
 3. **Flexible** – Two distinct game modes (Gun Game and King of the Hill) selectable at runtime
 4. **Balanced** – Weapon progression from heavy (M249) to primitive (crossbow); zone scoring balanced against kills
-5. **Configurable** – All weapons, ammo, armor, timers, modes, vehicle prefabs customizable
-6. **Informative** – Round stats and live leaderboards give players feedback; zone location announced with grid reference
+5. **Configurable** – All weapons, ammo, armor, timers, modes customizable
+6. **Human-Only** – Kills/deaths tracked only for real players; NPCs filtered out from stats
+7. **Informative** – Round stats and live leaderboards give players feedback; zone location announced with grid reference
 
 ## Map Grid System
 
